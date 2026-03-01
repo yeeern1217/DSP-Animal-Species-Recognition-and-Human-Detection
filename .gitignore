@@ -1,0 +1,41 @@
+# Byte-compiled / cached
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+.ENV/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data, images and training artifacts
+data/
+datasets/
+images/
+outputs/
+runs/
+weights/
+logs/
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit runtime folder (ignore if you want to keep it locally)
+.streamlit/
+
+# Model checkpoints (uncomment if you want to ignore all .pt files)
+# *.pt
