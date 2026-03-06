@@ -32,18 +32,3 @@ streamlit run app.py
 [server]
 fileWatcherType = "none"
 ```
-
-
-**Repository files of interest**
-
-**Typical workflow**
-
-**Deploying to Streamlit Sharing or similar**
-
-**Troubleshooting**
-  - Activate the virtual environment before installing or running.
-  - Verify `yolo_corrected.pt` is present and readable.
-
-**Contact / Next steps**
-  - Commit and push the `README.md` for you.
-  - Help remove any large files from Git history if your repo contains datasets or virtualenvs.
