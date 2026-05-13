@@ -3,26 +3,31 @@ from ultralytics import YOLO
 import cv2
 import tempfile
 import os
-import shutil
 
-# Set page configuration
-st.set_page_config(page_title="Data Driven Wildlife Species Recognition and Human Detection", layout="wide")
+from src.preprocessing import preprocess_frame
+from src.visualization import generate_heatmap, CLASS_ID_TO_SPECIES
 
-# Check if the 'selected_page' exists in session_state; if not, initialize it
-if 'selected_page' not in st.session_state:
-    st.session_state.selected_page = "Home Page"  # Default page
+# ---------------------------------------------------------------------------
+# Page configuration
+# ---------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Wildlife Species Recognition & Human Detection",
+    page_icon="🦁",
+    layout="wide",
+)
 
-# Page navigation
-page = st.sidebar.radio("Select Page", ["Home Page", "Dataset Description", "Exploratory Data Analysis", "Test Your Video"], index=["Home Page", "Dataset Description", "Exploratory Data Analysis", "Test Your Video"].index(st.session_state.selected_page))
+if "selected_page" not in st.session_state:
+    st.session_state.selected_page = "Home Page"
 
-import streamlit as st
+PAGES = ["Home Page", "Dataset Description", "Exploratory Data Analysis", "Test Your Video"]
+page = st.sidebar.radio("Select Page", PAGES, index=PAGES.index(st.session_state.selected_page))
 
 if page == "Home Page":
     # Dataset Description Page Code
     st.title("Data-Driven Wildlife Species Recognition and Poacher Detection", anchor="home")
     
     # Add an image with a caption
-    st.image("cover.png", use_column_width=True, caption="Monitoring Wildlife with AI")
+    st.image("assets/cover.png", use_column_width=True, caption="Monitoring Wildlife with AI")
 
     # Description with proper formatting and separation
     st.write("""
@@ -48,7 +53,7 @@ elif page == "Dataset Description":
     st.title("Dataset Description")
 
     # Image with a caption
-    st.image("birdsai.png", use_column_width=True, caption="BIRDSAI Dataset for Wildlife Surveillance")
+    st.image("assets/birdsai.png", use_column_width=True, caption="BIRDSAI Dataset for Wildlife Surveillance")
 
     # Overview Section with clean formatting
     st.header("Overview")
@@ -87,7 +92,7 @@ elif page == "Exploratory Data Analysis":
 
     st.header("Class distribution")
 
-    st.image("species_distribution.png", use_column_width=True)
+    st.image("assets/species_distribution.png", use_column_width=True)
 
     st.write("""
     This graph suggest class imbalance for the dataset. Elephants dominate the dataset with over 40,000 annotations, making them the most frequently annotated species. In contrast, lions have fewer than 5,000 annotations, representing the least annotated species.
@@ -96,7 +101,7 @@ elif page == "Exploratory Data Analysis":
 
     st.header("Bounding Box Area Distribution")
 
-    st.image("boundingbox_area_distribution.png", use_column_width=True)
+    st.image("assets/boundingbox_area_distribution.png", use_column_width=True)
 
     st.write("""
     Most bounding boxes are concentrated in the left area of the graph, indicating that the majority of the bounding boxes are extremely small. This suggests that many of the objects in the dataset occupy a small portion of the image
@@ -104,7 +109,7 @@ elif page == "Exploratory Data Analysis":
 
     st.header("Bounding Box Area Distribution by Class")
     
-    st.image("species_boundingbox_area_distribution.png", use_column_width=True)
+    st.image("assets/species_boundingbox_area_distribution.png", use_column_width=True)
     
     st.write("""
     Elephants exhibit the largest average bounding box area, likely reflecting their physical size relative to other species in the dataset. Conversely, lions and "unknown species" are associated with the smallest bounding box areas, which may suggest that these species are either smaller or farther from the camera, leading to reduced bounding box sizes.
@@ -113,7 +118,7 @@ elif page == "Exploratory Data Analysis":
     
     st.header("Bounding Box Location Heatmap")
     
-    st.image("heatmap_location.png", use_column_width=True)
+    st.image("assets/heatmap_location.png", use_column_width=True)
     
     st.write("""
     The bounding boxes are primarily concentrated in the lower center of the image frames. This spatial distribution might indicate a dataset bias, where most objects are captured in this specific region of the frame. This could be due to factors like camera placement or the natural movement patterns of the animals being studied.
@@ -122,37 +127,10 @@ elif page == "Exploratory Data Analysis":
 
 elif page == "Test Your Video":
     import time
-    import streamlit as st
-    import cv2
-    import os
-    import tempfile
-    from ultralytics import YOLO
     import pandas as pd
     import plotly.express as px
     import numpy as np
 
-    # Helper Functions
-    def preprocess_frame(frame):
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray_frame, 100, 200)
-        adaptive_thresh = cv2.adaptiveThreshold(gray_frame, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-        combined_frame = cv2.merge([gray_frame, edges, adaptive_thresh])
-        return combined_frame
-
-    def generate_heatmap(bbox_locations, frame_shape, scale_factor=0.8):
-        heatmap = np.zeros((frame_shape[0], frame_shape[1]), dtype=np.float32)
-        for x, y, w, h in bbox_locations:
-            center_x, center_y = int(x + w / 2), int(y + h / 2)
-            heatmap[center_y, center_x] += 1
-        heatmap = cv2.GaussianBlur(heatmap, (21, 21), 0)
-        heatmap = cv2.normalize(heatmap, None, 0, 255, cv2.NORM_MINMAX)
-        heatmap = np.uint8(heatmap)
-        heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-        heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
-        resized_heatmap = cv2.resize(heatmap_colored, (int(frame_shape[1] * scale_factor), int(frame_shape[0] * scale_factor)))
-        return resized_heatmap
-
-    # Dashboard Layout
     st.title("Test Your Video")
 
     # Metrics Section
@@ -185,7 +163,7 @@ elif page == "Test Your Video":
 
             try:
                 # Load YOLO model
-                trained_model = YOLO('yolo_corrected.pt')
+                trained_model = YOLO('models/yolo_corrected.pt')
 
                 # Create a directory to save processed videos
                 output_dir = "processed_videos"
@@ -229,20 +207,13 @@ elif page == "Test Your Video":
                     human_detected = False  # Flag to track if a human is detected in the current frame
                     frame_species_count = {}  # Dictionary to store species count for the current frame
 
-                    class_id_to_species = {
-                        0: "Human",
-                        1: "Elephant",
-                        2: "Lion",
-                        3: "Giraffe",
-                        # Add all class IDs with their corresponding species names
-                    }
                     for result in results[0].boxes.data:
                         class_id = int(result[-1])
                         confidence = result[-2]
                         x1, y1, x2, y2 = map(int, result[:4])
                         bbox_locations.append((x1, y1, x2 - x1, y2 - y1))
 
-                        species = class_id_to_species.get(class_id, f"Unknown ({class_id})")
+                        species = CLASS_ID_TO_SPECIES.get(class_id, f"Unknown ({class_id})")
                         data_for_dashboard.append({
                             "Frame": total_frames,
                             "Species": species,
@@ -347,20 +318,9 @@ elif page == "Test Your Video":
                 with metrics_col2:
                     st.metric("Total Time (s)", round(total_time, 2))
 
-                # Define a mapping of class IDs to species names (example mapping)
-                class_id_to_species = {
-                    0: "Human",
-                    1: "Elephant",
-                    2: "Lion",
-                    3: "Giraffe",
-                    # Add all class IDs with their corresponding species names
-                }
-
-                # Inside the species detection summary section:
                 species_summary = []
                 for species, counts in st.session_state.species_count_per_frame.items():
-                    # Map class ID to species name
-                    species_name = class_id_to_species.get(species, f"{species}")
+                    species_name = CLASS_ID_TO_SPECIES.get(species, f"{species}")
                     species_summary.append({
                         "Species": species_name,  # Use the species name here
                         "Min Count": counts["min"],

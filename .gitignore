@@ -20,14 +20,23 @@ pip-delete-this-directory.txt
 # Data, images and training artifacts
 data/
 datasets/
-images/
 outputs/
 runs/
 weights/
 logs/
 
+# Processed video output
+processed_videos/
+
 # Editor/IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 .idea/
 
 # OS
